@@ -1,6 +1,7 @@
 """
 Decorated lines
----------------
+===============
+
 To draw a so-called *decorated line*, i.e., symbols along a line
 or curve, use the ``style`` parameter of the
 :meth:`pygmt.Figure.plot` method with the argument ``"~"`` and the
@@ -11,14 +12,14 @@ Beside the built-in symbols also custom symbols can be used.
 For modifying the main decorated line via the ``pen`` parameter,
 see the :doc:`Line styles example </gallery/lines/linestyles>`.
 For details on the input data see the upstream GMT documentation
-at https://docs.generic-mapping-tools.org/latest/plot.html#s.
+at :gmt-docs:`plot.html#s`.
 Furthermore, there are so-called *line fronts*, which are often
 used to plot fault lines, subduction zones, or weather fronts;
 for details see the
 :doc:`Line fronts example </gallery/lines/linefronts>`.
 """
 
-
+# %%
 import numpy as np
 import pygmt
 
