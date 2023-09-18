@@ -4,13 +4,12 @@ shift_origin - Shift plot origin in x and/or y directions.
 from contextlib import contextmanager
 
 from pygmt.clib import Session
-from pygmt.helpers import build_arg_string
 from pygmt.exceptions import GMTInvalidInput
+from pygmt.helpers import build_arg_string
 
 
-@contextmanager
-def shift_origin(self, xshift=None, yshift=None):
-    """
+class shift_origin:
+    r"""
     Shift plot origin in x and/or y directions.
 
     This method shifts the plot origin relative to the current origin by
@@ -35,7 +34,7 @@ def shift_origin(self, xshift=None, yshift=None):
 
        .. code-block::
 
-          Figure.shift_origin(xshift=..., yshift=...)
+           Figure.shift_origin(xshift=..., yshift=...)
 
     2. Calling :meth:`Figure.shift_origin` as a context manager:
 
@@ -61,24 +60,28 @@ def shift_origin(self, xshift=None, yshift=None):
     >>> fig.shift_origin(xshift="w+2c")
     >>> fig.show()
     """
-    self._preprocess()  # pylint: disable=protected-access
 
-    kwargs = {"T": True}
-    if xshift:
-        kwargs["X"] = xshift
-    if yshift:
-        kwargs["Y"] = yshift
+    def __init__(self, xshift=None, yshift=None):
+        # self._preprocess()  # pylint: disable=protected-access
 
-    try:
+        kwargs = {"T": True}
+        if xshift:
+            kwargs["X"] = xshift
+        if yshift:
+            kwargs["Y"] = yshift
         with Session() as lib:
             lib.call_module(module="plot", args=build_arg_string(kwargs))
-            saved_xshift = lib.get_common("X")  # False or xshift in inches
-            saved_yshift = lib.get_common("Y")  # False or yshift in inches
-            yield
-    finally:
-        if saved_xshift:
-            kwargs["X"] = f"{-1.0 * saved_xshift}i"
-        if saved_yshift:
-            kwargs["Y"] = f"{-1.0 * saved_yshift}i"
+            self.saved_xshift = lib.get_common("X")  # False or xshift in inches
+            self.saved_yshift = lib.get_common("Y")  # False or yshift in inches
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        kwargs = {"T": True}
+        if self.saved_xshift:
+            kwargs["X"] = f"{-1.0 * self.saved_xshift}i"
+        if self.saved_yshift:
+            kwargs["Y"] = f"{-1.0 * self.saved_yshift}i"
         with Session() as lib:
             lib.call_module(module="plot", args=build_arg_string(kwargs))
