@@ -66,7 +66,7 @@ def select(data=None, outfile=None, **kwargs):
 
     Parameters
     ----------
-    data : str or {table-like}
+    data : str, {table-like}
         Pass in either a file name to an ASCII data table, a 2-D
         {table-classes}.
     outfile : str
@@ -88,7 +88,7 @@ def select(data=None, outfile=None, **kwargs):
         *linefile*\ **+d**\ *dist*\ [**+p**].
         Pass all records whose locations are within *dist* of any of the line
         segments in the ASCII :gmt-docs:`multiple-segment file
-        <cookbook/file-formats.html#optional-segment-header-records>`
+        <reference/file-formats.html#optional-segment-header-records>`
         *linefile*. If *dist* is zero, we will scan each sub-header in
         *linefile* for an embedded **-D**\ *dist* setting that sets each
         line's individual distance value. Distances are Cartesian and in
@@ -104,7 +104,7 @@ def select(data=None, outfile=None, **kwargs):
         *polygonfile*.
         Pass all records whose locations are within one of the closed
         polygons in the ASCII :gmt-docs:`multiple-segment file
-        <cookbook/file-formats.html#optional-segment-header-records>`
+        <reference/file-formats.html#optional-segment-header-records>`
         *polygonfile*. For spherical polygons (lon, lat), make sure no
         consecutive points are separated by 180 degrees or more in longitude.
     resolution : str
@@ -198,7 +198,6 @@ def select(data=None, outfile=None, **kwargs):
 
     with GMTTempFile(suffix=".csv") as tmpfile:
         with Session() as lib:
-            # Choose how data will be passed into the module
             table_context = lib.virtualfile_from_data(check_kind="vector", data=data)
             with table_context as infile:
                 if outfile is None:

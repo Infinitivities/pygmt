@@ -1,4 +1,3 @@
-# pylint: disable=unused-argument
 """
 Test pygmt.x2sys_cross.
 """
@@ -17,10 +16,10 @@ from pygmt.helpers import data_kind
 
 
 @pytest.fixture(name="mock_x2sys_home")
-def fixture_mock_x2sys_home(monkeypatch):
+def _fixture_mock_x2sys_home(monkeypatch):
     """
-    Set the X2SYS_HOME environment variable to the current working directory
-    for the test session.
+    Set the X2SYS_HOME environment variable to the current working directory for the
+    test session.
     """
     monkeypatch.setenv("X2SYS_HOME", os.getcwd())
 
@@ -35,10 +34,11 @@ def fixture_tracks():
     return [dataframe.query(expr="z > -20")]  # reduce size of dataset
 
 
-def test_x2sys_cross_input_file_output_file(mock_x2sys_home):
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_input_file_output_file():
     """
-    Run x2sys_cross by passing in a filename, and output internal crossovers to
-    an ASCII txt file.
+    Run x2sys_cross by passing in a filename, and output internal crossovers to an ASCII
+    txt file.
     """
     with TemporaryDirectory(prefix="X2SYS", dir=os.getcwd()) as tmpdir:
         tag = os.path.basename(tmpdir)
@@ -53,10 +53,11 @@ def test_x2sys_cross_input_file_output_file(mock_x2sys_home):
         _ = pd.read_csv(outfile, sep="\t", header=2)  # ensure ASCII text file loads ok
 
 
-def test_x2sys_cross_input_file_output_dataframe(mock_x2sys_home):
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_input_file_output_dataframe():
     """
-    Run x2sys_cross by passing in a filename, and output internal crossovers to
-    a pandas.DataFrame.
+    Run x2sys_cross by passing in a filename, and output internal crossovers to a
+    pandas.DataFrame.
     """
     with TemporaryDirectory(prefix="X2SYS", dir=os.getcwd()) as tmpdir:
         tag = os.path.basename(tmpdir)
@@ -70,10 +71,12 @@ def test_x2sys_cross_input_file_output_dataframe(mock_x2sys_home):
         assert columns[6:] == ["head_1", "head_2", "vel_1", "vel_2", "z_X", "z_M"]
 
 
-def test_x2sys_cross_input_dataframe_output_dataframe(mock_x2sys_home, tracks):
+@pytest.mark.benchmark
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_input_dataframe_output_dataframe(tracks):
     """
-    Run x2sys_cross by passing in one dataframe, and output internal crossovers
-    to a pandas.DataFrame.
+    Run x2sys_cross by passing in one dataframe, and output internal crossovers to a
+    pandas.DataFrame.
     """
     with TemporaryDirectory(prefix="X2SYS", dir=os.getcwd()) as tmpdir:
         tag = os.path.basename(tmpdir)
@@ -90,10 +93,11 @@ def test_x2sys_cross_input_dataframe_output_dataframe(mock_x2sys_home, tracks):
         assert output.dtypes["i_2"].type == np.object_
 
 
-def test_x2sys_cross_input_two_dataframes(mock_x2sys_home):
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_input_two_dataframes():
     """
-    Run x2sys_cross by passing in two pandas.DataFrame tables with a time
-    column, and output external crossovers to a pandas.DataFrame.
+    Run x2sys_cross by passing in two pandas.DataFrame tables with a time column, and
+    output external crossovers to a pandas.DataFrame.
     """
     with TemporaryDirectory(prefix="X2SYS", dir=os.getcwd()) as tmpdir:
         tag = os.path.basename(tmpdir)
@@ -110,15 +114,15 @@ def test_x2sys_cross_input_two_dataframes(mock_x2sys_home):
         # Create pandas.DataFrame track tables
         tracks = []
         for i in range(2):
-            np.random.seed(seed=i)
-            track = pd.DataFrame(data=np.random.rand(10, 3), columns=("x", "y", "z"))
+            rng = np.random.default_rng(seed=i)
+            track = pd.DataFrame(data=rng.random((10, 3)), columns=("x", "y", "z"))
             track["time"] = pd.date_range(start=f"2020-{i}1-01", periods=10, freq="min")
             tracks.append(track)
 
         output = x2sys_cross(tracks=tracks, tag=tag, coe="e")
 
         assert isinstance(output, pd.DataFrame)
-        assert output.shape == (30, 12)
+        assert output.shape == (26, 12)
         columns = list(output.columns)
         assert columns[:6] == ["x", "y", "t_1", "t_2", "dist_1", "dist_2"]
         assert columns[6:] == ["head_1", "head_2", "vel_1", "vel_2", "z_X", "z_M"]
@@ -126,10 +130,11 @@ def test_x2sys_cross_input_two_dataframes(mock_x2sys_home):
         assert output.dtypes["t_2"].type == np.datetime64
 
 
-def test_x2sys_cross_input_dataframe_with_nan(mock_x2sys_home, tracks):
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_input_dataframe_with_nan(tracks):
     """
-    Run x2sys_cross by passing in one dataframe with NaN values, and output
-    internal crossovers to a pandas.DataFrame.
+    Run x2sys_cross by passing in one dataframe with NaN values, and output internal
+    crossovers to a pandas.DataFrame.
     """
     with TemporaryDirectory(prefix="X2SYS", dir=os.getcwd()) as tmpdir:
         tag = os.path.basename(tmpdir)
@@ -149,10 +154,11 @@ def test_x2sys_cross_input_dataframe_with_nan(mock_x2sys_home, tracks):
         assert output.dtypes["i_2"].type == np.object_
 
 
-def test_x2sys_cross_input_two_filenames(mock_x2sys_home):
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_input_two_filenames():
     """
-    Run x2sys_cross by passing in two filenames, and output external crossovers
-    to a pandas.DataFrame.
+    Run x2sys_cross by passing in two filenames, and output external crossovers to a
+    pandas.DataFrame.
     """
     with TemporaryDirectory(prefix="X2SYS", dir=os.getcwd()) as tmpdir:
         tag = os.path.basename(tmpdir)
@@ -160,16 +166,16 @@ def test_x2sys_cross_input_two_filenames(mock_x2sys_home):
 
         # Create temporary xyz files
         for i in range(2):
-            np.random.seed(seed=i)
+            rng = np.random.default_rng(seed=i)
             with open(
                 os.path.join(os.getcwd(), f"track_{i}.xyz"), mode="w", encoding="utf8"
             ) as fname:
-                np.savetxt(fname=fname, X=np.random.rand(10, 3))
+                np.savetxt(fname=fname, X=rng.random((10, 3)))
 
         output = x2sys_cross(tracks=["track_0.xyz", "track_1.xyz"], tag=tag, coe="e")
 
         assert isinstance(output, pd.DataFrame)
-        assert output.shape == (24, 12)
+        assert output.shape == (18, 12)
         columns = list(output.columns)
         assert columns[:6] == ["x", "y", "i_1", "i_2", "dist_1", "dist_2"]
         assert columns[6:] == ["head_1", "head_2", "vel_1", "vel_2", "z_X", "z_M"]
@@ -178,8 +184,8 @@ def test_x2sys_cross_input_two_filenames(mock_x2sys_home):
 
 def test_x2sys_cross_invalid_tracks_input_type(tracks):
     """
-    Run x2sys_cross using tracks input that is not a pandas.DataFrame (matrix)
-    or str (file) type, which would raise a GMTInvalidInput error.
+    Run x2sys_cross using tracks input that is not a pandas.DataFrame (matrix) or str
+    (file) type, which would raise a GMTInvalidInput error.
     """
     invalid_tracks = tracks[0].to_xarray().z
     assert data_kind(invalid_tracks) == "grid"
@@ -187,10 +193,11 @@ def test_x2sys_cross_invalid_tracks_input_type(tracks):
         x2sys_cross(tracks=[invalid_tracks])
 
 
-def test_x2sys_cross_region_interpolation_numpoints(mock_x2sys_home):
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_region_interpolation_numpoints():
     """
-    Test that x2sys_cross's region (R), interpolation (l) and numpoints (W)
-    arguments work.
+    Test that x2sys_cross's region (R), interpolation (l) and numpoints (W) arguments
+    work.
     """
     with TemporaryDirectory(prefix="X2SYS", dir=os.getcwd()) as tmpdir:
         tag = os.path.basename(tmpdir)
@@ -211,7 +218,8 @@ def test_x2sys_cross_region_interpolation_numpoints(mock_x2sys_home):
         npt.assert_allclose(output.z_M.mean(), -2890.465813)
 
 
-def test_x2sys_cross_trackvalues(mock_x2sys_home):
+@pytest.mark.usefixtures("mock_x2sys_home")
+def test_x2sys_cross_trackvalues():
     """
     Test that x2sys_cross's trackvalues (Z) argument work.
     """

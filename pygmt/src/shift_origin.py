@@ -1,53 +1,46 @@
 """
 shift_origin - Shift plot origin in x and/or y directions.
 """
-from contextlib import contextmanager
+from __future__ import annotations
 
+from pygmt import Figure
 from pygmt.clib import Session
-from pygmt.exceptions import GMTInvalidInput
 from pygmt.helpers import build_arg_string
 
 
-class shift_origin:
+class shift_origin(Figure):  # noqa: N801
     r"""
     Shift plot origin in x and/or y directions.
 
-    This method shifts the plot origin relative to the current origin by
-    *xshift* and *yshift* in x and y directions, respectively. Optionally,
-    append the length unit (**c** for centimeters, **i** for inches, or **p**
-    for points) to the shifts. Default unit if not given is **c**.
+    This method shifts the plot origin relative to the current origin by *xshift* and
+    *yshift* in x and y directions, respectively. Optionally, append the length unit
+    (**c** for centimeters, **i** for inches, or **p** for points) to the shifts.
+    Default unit if not explicitly given is **c**, but can be changed to other units via
+    :gmt-term:`PROJ_LENGTH_UNIT`.
 
-    For *xshift*, a special character **w** can also be used, which represents
-    the bounding box width of the previous plot. The full syntax is
-    [[±][*f*]\ **w**\ [/\ *d*\ ]±]\ *xoff*, where optional signs, factor *f* and
-    divisor *d* can be used to compute an offset that may be adjusted further
-    by ±*off*.
+    For *xshift*, a special character **w** can also be used, which represents the
+    bounding box **width** of the previous plot. The full syntax is
+    [[±][*f*]\ **w**\ [/\ *d*\ ]±]\ *xoff*, where optional signs, factor *f* and divisor
+    *d* can be used to compute an offset that may be adjusted further by ±\ *xoff*.
+    Assuming that the previous plot has a width of 10 centimeters, here are some example
+    values for *xshift*:
 
-    Similarly, *yshift* can in general be [[±][*f*]\ **h**\ [/\ *d*\ ]±]\ *yoff*,
-    in which **h** is the bounding box height of the previous plot.
+    - ``"w"``: x-shift is 10 cm
+    - ``"w+2c"``: x-shift is 10+2=12 cm
+    - ``"2w+3c"``: x-shift is 2*10+3=23 cm
+    - ``"w/2-2c"``: x-shift is 10/2-2=3 cm
 
-    Shifting the plot origin can be performed permanently or temporarily, depending
-    on how the method is called.
+    Similarly, for *yshift*, a special character **h** can also be used, which is the
+    bounding box **height** of the previous plot.
 
-    1. Calling :meth:`Figure.shift_origin` directly will shift the plot origin
-       permanently, which affects all subsequent plottings:
-
-       .. code-block::
-
-           Figure.shift_origin(xshift=..., yshift=...)
-
-    2. Calling :meth:`Figure.shift_origin` as a context manager:
-
-        .. code-block::
-
-            with Figure.shift_origin(xshift=..., yshift=...):
-                ...
+    **Note**: The previous plot bounding box refers to the last object plotted, which
+    may be a basemap, image, logo, legend, colorbar, etc.
 
     Parameters
     ----------
-    xshift : float or str
+    xshift
         Shift plot origin in x direction.
-    yshift : float or str
+    yshift
         Shift plot origin in y direction.
 
     Examples
@@ -55,13 +48,18 @@ class shift_origin:
     >>> import pygmt
     >>> fig = pygmt.Figure()
     >>> fig.basemap(region=[0, 10, 0, 10], projection="X10c/10c", frame=True)
+    >>> # Shift the plot origin in x direction by 12 cm
     >>> fig.shift_origin(xshift=12)
-    >>> fig.basemap(region=[0, 10, 0, 10], projection="X10c/10c", frame=True)
+    >>> fig.basemap(region=[0, 10, 0, 10], projection="X14c/10c", frame=True)
+    >>> # Shift the plot origin in x direction based on the previous plot width
+    >>> # Here, the width is 14 cm, and xshift is 16 cm
     >>> fig.shift_origin(xshift="w+2c")
     >>> fig.show()
     """
 
-    def __init__(self, xshift=None, yshift=None):
+    def __init__(
+        self, xshift: float | str | None = None, yshift: float | str | None = None
+    ):
         # self._preprocess()  # pylint: disable=protected-access
 
         kwargs = {"T": True}
@@ -75,9 +73,15 @@ class shift_origin:
             self.saved_yshift = lib.get_common("Y")  # False or yshift in inches
 
     def __enter__(self):
+        """
+        Enter the context manager.
+        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Exit the context manager.
+        """
         kwargs = {"T": True}
         if self.saved_xshift:
             kwargs["X"] = f"{-1.0 * self.saved_xshift}i"
