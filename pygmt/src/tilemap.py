@@ -1,6 +1,7 @@
 """
 tilemap - Plot XYZ tile maps.
 """
+
 from __future__ import annotations
 
 from pygmt.clib import Session
@@ -43,7 +44,7 @@ def tilemap(
     **kwargs,
 ):
     r"""
-    Plots an XYZ tile map.
+    Plot an XYZ tile map.
 
     This method loads XYZ tile maps from a tile server or local file using
     :func:`pygmt.datasets.load_tile_map` into a georeferenced form, and plots
@@ -163,8 +164,7 @@ def tilemap(
         kwargs["R"] = "/".join(str(coordinate) for coordinate in region)
 
     with Session() as lib:
-        file_context = lib.virtualfile_from_data(check_kind="raster", data=raster)
-        with file_context as infile:
+        with lib.virtualfile_in(check_kind="raster", data=raster) as vingrd:
             lib.call_module(
-                module="grdimage", args=build_arg_string(kwargs, infile=infile)
+                module="grdimage", args=build_arg_string(kwargs, infile=vingrd)
             )

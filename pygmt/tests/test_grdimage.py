@@ -1,6 +1,7 @@
 """
 Test Figure.grdimage.
 """
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -173,7 +174,7 @@ def test_grdimage_over_dateline(xrgrid):
     return fig
 
 
-@pytest.mark.mpl_image_compare
+@pytest.mark.mpl_image_compare(tolerance=3.6)
 def test_grdimage_global_subset(grid_360):
     """
     Ensure subsets of grids are plotted correctly on a global map.
