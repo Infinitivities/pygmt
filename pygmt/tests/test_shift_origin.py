@@ -1,6 +1,7 @@
 """
 Tests Figure.shift_origin.
 """
+
 import pytest
 from pygmt import Figure
 
