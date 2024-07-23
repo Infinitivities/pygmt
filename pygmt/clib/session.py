@@ -1701,7 +1701,7 @@ class Session:
             if check_kind == "raster":
                 valid_kinds += ("grid", "image")
             elif check_kind == "vector":
-                valid_kinds += ("matrix", "vectors", "geojson")
+                valid_kinds += ("none", "matrix", "vectors", "geojson")
             if kind not in valid_kinds:
                 raise GMTInvalidInput(
                     f"Unrecognized data type for {check_kind}: {type(data)}"
@@ -1709,15 +1709,13 @@ class Session:
 
         # Decide which virtualfile_from_ function to use
         _virtualfile_from = {
-            "file": contextlib.nullcontext,
+            "none": self.virtualfile_from_vectors,
             "arg": contextlib.nullcontext,
+            "file": contextlib.nullcontext,
             "geojson": tempfile_from_geojson,
             "grid": self.virtualfile_from_grid,
             "image": tempfile_from_image,
-            # Note: virtualfile_from_matrix is not used because a matrix can be
-            # converted to vectors instead, and using vectors allows for better
-            # handling of string type inputs (e.g. for datetime data types)
-            "matrix": self.virtualfile_from_vectors,
+            "matrix": self.virtualfile_from_matrix,
             "vectors": self.virtualfile_from_vectors,
         }[kind]
 
@@ -1733,25 +1731,27 @@ class Session:
                 )
                 warnings.warn(message=msg, category=RuntimeWarning, stacklevel=2)
             _data = (data,) if not isinstance(data, pathlib.PurePath) else (str(data),)
-        elif kind == "vectors":
+        elif kind == "none":  # data is given via a series of vectors
             _data = [np.atleast_1d(x), np.atleast_1d(y)]
             if z is not None:
                 _data.append(np.atleast_1d(z))
             if extra_arrays:
                 _data.extend(extra_arrays)
-        elif kind == "matrix":  # turn 2-D arrays into list of vectors
+        elif kind == "vectors":
             if hasattr(data, "items") and not hasattr(data, "to_frame"):
                 # pandas.DataFrame or xarray.Dataset types.
                 # pandas.Series will be handled below like a 1-D numpy.ndarray.
                 _data = [array for _, array in data.items()]
-            elif hasattr(data, "ndim") and data.ndim == 2 and data.dtype.kind in "iuf":
-                # Just use virtualfile_from_matrix for 2-D numpy.ndarray
-                # which are signed integer (i), unsigned integer (u) or
-                # floating point (f) types
-                _virtualfile_from = self.virtualfile_from_matrix
-                _data = (data,)
             else:
-                # Python list, tuple, numpy.ndarray, and pandas.Series types
+                # Python list, tuple, and pandas.Series types
+                _data = np.atleast_2d(np.asanyarray(data).T)
+        elif kind == "matrix":
+            if data.dtype.kind in "iuf":
+                # virtualfile_from_matrix only support 2-D numpy.ndarray which are
+                # signed integer (i), unsigned integer (u) or floating point (f) types
+                _data = (data,)
+            else:  # turn 2-D numpy.ndarray into list of vectors
+                _virtualfile_from = self.virtualfile_from_vectors
                 _data = np.atleast_2d(np.asanyarray(data).T)
 
         # Finally create the virtualfile from the data, to be passed into GMT

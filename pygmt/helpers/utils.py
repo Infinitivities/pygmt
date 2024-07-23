@@ -187,31 +187,30 @@ def _check_encoding(
     return "ISOLatin1+"
 
 
-def data_kind(
+def data_kind(  # noqa: PLR0911
     data: Any, required: bool = True
-) -> Literal["arg", "file", "geojson", "grid", "image", "matrix", "vectors"]:
+) -> Literal["none", "arg", "file", "geojson", "grid", "image", "matrix", "vectors"]:
     """
     Check the kind of data that is provided to a module.
 
     Recognized data kinds are:
 
-    - ``"arg"``: bool, int or float, representing an optional argument, mainly used for
-      dealing with optional virtual files
+    - ``"none"``: None and data is required. In this case, the data is usually given via
+      a series of vectors (e.g., x/y/z)
+    - ``"arg"``: bool, int, float, or None (only when ``required`` is False),
+      representing an optional argument, mainly used for dealing with optional virtual
+      files
     - ``"file"``: a string or a :class:`pathlib.PurePath` object or a sequence of them,
       representing a file name or a list of file names
     - ``"geojson"``: a geo-like Python object that implements ``__geo_interface__``
       (e.g., geopandas.GeoDataFrame or shapely.geometry)
     - ``"grid"``: a :class:`xarray.DataArray` object with dimensions not equal to 3
     - ``"image"``: a :class:`xarray.DataArray` object with 3 dimensions
-    - ``"matrix"``: a :class:`pandas.DataFrame` object, a 2-D :class:`numpy.ndarray`,
-      a dictionary with array-like values, or a sequence of sequences
+    - ``"matrix"``: a 2-D :class:`numpy.ndarray` object
+    - ``"vectors"``: a :class:`pandas.DataFrame` object, a dictionary with array-like
+      values, or a sequence of sequences
 
-    In addition, the data can be given via a series of vectors (e.g., x/y/z). In this
-    case, the ``data`` argument is ``None`` and the data kind is determined by the
-    ``required`` argument. The data kind is ``"vectors"`` if ``required`` is ``True``,
-    otherwise the data kind is ``"arg"``.
-
-    The function will fallback to ``"matrix"`` for any unrecognized data.
+    The function will fallback to ``"vectors"`` for any unrecognized data.
 
     Parameters
     ----------
@@ -232,12 +231,12 @@ def data_kind(
     >>> import xarray as xr
     >>> import pandas as pd
     >>> import pathlib
-    >>> [data_kind(data=data) for data in (2, 2.0, True, False)]
-    ['arg', 'arg', 'arg', 'arg']
     >>> data_kind(data=None)
-    'vectors'
+    'none'
     >>> data_kind(data=None, required=False)
     'arg'
+    >>> [data_kind(data=data) for data in (2, 2.0, True, False)]
+    ['arg', 'arg', 'arg', 'arg']
     >>> data_kind(data="my-data-file.txt")
     'file'
     >>> data_kind(data=pathlib.Path("my-data-file.txt"))
@@ -251,16 +250,15 @@ def data_kind(
     >>> data_kind(data=np.arange(10).reshape((5, 2)))
     'matrix'
     >>> data_kind(data=pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]}))
-    'matrix'
+    'vectors'
     >>> data_kind(data={"x": [1, 2], "y": [3, 4]})
-    'matrix'
+    'vectors'
     >>> data_kind(data=[1, 2, 3])
-    'matrix'
+    'vectors'
     """
-    # data is None, so data must be given via a series of vectors (i.e., x/y/z).
-    # The only exception is when dealing with optional virtual files.
-    if data is None:
-        return "vectors" if required else "arg"
+    # data is None and is required.
+    if data is None and required:
+        return "none"
 
     # A file or a list of files
     if isinstance(data, str | pathlib.PurePath) or (
@@ -269,8 +267,8 @@ def data_kind(
     ):
         return "file"
 
-    # An option argument
-    if isinstance(data, bool | int | float):
+    # An option argument, mainly for dealing with optional virtual files
+    if isinstance(data, bool | int | float) or (data is None and not required):
         return "arg"
 
     # A xr.DataArray grid or image
@@ -282,8 +280,12 @@ def data_kind(
     if hasattr(data, "__geo_interface__"):
         return "geojson"
 
-    # Fallback to "matrix" for anything else
-    return "matrix"
+    # A 2-D numpy.ndarray
+    if hasattr(data, "__array_interface__") and data.ndim == 2:
+        return "matrix"
+
+    # Fallback to "vectors" for anything else
+    return "vectors"
 
 
 def non_ascii_to_octal(
