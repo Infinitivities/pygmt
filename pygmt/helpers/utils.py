@@ -188,30 +188,38 @@ def _check_encoding(
 
 
 def data_kind(
-    data: Any = None, required: bool = True
+    data: Any, required: bool = True
 ) -> Literal["arg", "file", "geojson", "grid", "image", "matrix", "vectors"]:
     """
     Check the kind of data that is provided to a module.
 
-    The ``data`` argument can be in any type, but only following types are supported:
+    Recognized data kinds are:
 
-    - a string or a :class:`pathlib.PurePath` object or a sequence of them, representing
-      a file name or a list of file names
-    - a 2-D or 3-D :class:`xarray.DataArray` object
-    - a 2-D matrix
-    - None, bool, int or float type representing an optional arguments
-    - a geo-like Python object that implements ``__geo_interface__`` (e.g.,
-      geopandas.GeoDataFrame or shapely.geometry)
+    - ``"arg"``: bool, int or float, representing an optional argument, mainly used for
+      dealing with optional virtual files
+    - ``"file"``: a string or a :class:`pathlib.PurePath` object or a sequence of them,
+      representing a file name or a list of file names
+    - ``"geojson"``: a geo-like Python object that implements ``__geo_interface__``
+      (e.g., geopandas.GeoDataFrame or shapely.geometry)
+    - ``"grid"``: a :class:`xarray.DataArray` object with dimensions not equal to 3
+    - ``"image"``: a :class:`xarray.DataArray` object with 3 dimensions
+    - ``"matrix"``: a :class:`pandas.DataFrame` object, a 2-D :class:`numpy.ndarray`,
+      a dictionary with array-like values, or a sequence of sequences
+
+    In addition, the data can be given via a series of vectors (e.g., x/y/z). In this
+    case, the ``data`` argument is ``None`` and the data kind is determined by the
+    ``required`` argument. The data kind is ``"vectors"`` if ``required`` is ``True``,
+    otherwise the data kind is ``"arg"``.
+
+    The function will fallback to ``"matrix"`` for any unrecognized data.
 
     Parameters
     ----------
-    data : str, pathlib.PurePath, None, bool, xarray.DataArray or {table-like}
-        Pass in either a file name or :class:`pathlib.Path` to an ASCII data
-        table, an :class:`xarray.DataArray`, a 1-D/2-D
-        {table-classes} or an option argument.
+    data
+        The data that is provided to a module.
     required
-        Set to True when 'data' is required, or False when dealing with
-        optional virtual files. [Default is True].
+        If the data is required or not. Set to ``False`` when dealing with optional
+        virtual files.
 
     Returns
     -------
@@ -222,46 +230,60 @@ def data_kind(
     --------
     >>> import numpy as np
     >>> import xarray as xr
+    >>> import pandas as pd
     >>> import pathlib
+    >>> [data_kind(data=data) for data in (2, 2.0, True, False)]
+    ['arg', 'arg', 'arg', 'arg']
     >>> data_kind(data=None)
     'vectors'
-    >>> data_kind(data=np.arange(10).reshape((5, 2)))
-    'matrix'
+    >>> data_kind(data=None, required=False)
+    'arg'
     >>> data_kind(data="my-data-file.txt")
     'file'
     >>> data_kind(data=pathlib.Path("my-data-file.txt"))
     'file'
-    >>> data_kind(data=None, required=False)
-    'arg'
-    >>> data_kind(data=2.0, required=False)
-    'arg'
-    >>> data_kind(data=True, required=False)
-    'arg'
+    >>> data_kind(data=["data1.txt", "data2.txt"])
+    'file'
     >>> data_kind(data=xr.DataArray(np.random.rand(4, 3)))
     'grid'
     >>> data_kind(data=xr.DataArray(np.random.rand(3, 4, 5)))
     'image'
+    >>> data_kind(data=np.arange(10).reshape((5, 2)))
+    'matrix'
+    >>> data_kind(data=pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]}))
+    'matrix'
+    >>> data_kind(data={"x": [1, 2], "y": [3, 4]})
+    'matrix'
+    >>> data_kind(data=[1, 2, 3])
+    'matrix'
     """
-    kind: Literal["arg", "file", "geojson", "grid", "image", "matrix", "vectors"]
+    # data is None, so data must be given via a series of vectors (i.e., x/y/z).
+    # The only exception is when dealing with optional virtual files.
+    if data is None:
+        return "vectors" if required else "arg"
+
+    # A file or a list of files
     if isinstance(data, str | pathlib.PurePath) or (
         isinstance(data, list | tuple)
         and all(isinstance(_file, str | pathlib.PurePath) for _file in data)
     ):
-        # One or more files
-        kind = "file"
-    elif isinstance(data, bool | int | float) or (data is None and not required):
-        kind = "arg"
-    elif isinstance(data, xr.DataArray):
-        kind = "image" if len(data.dims) == 3 else "grid"
-    elif hasattr(data, "__geo_interface__"):
-        # geo-like Python object that implements ``__geo_interface__``
-        # (geopandas.GeoDataFrame or shapely.geometry)
-        kind = "geojson"
-    elif data is not None:
-        kind = "matrix"
-    else:
-        kind = "vectors"
-    return kind
+        return "file"
+
+    # An option argument
+    if isinstance(data, bool | int | float):
+        return "arg"
+
+    # A xr.DataArray grid or image
+    if isinstance(data, xr.DataArray):
+        return "image" if len(data.dims) == 3 else "grid"
+
+    # Geo-like Python object that implements ``__geo_interface__`` (e.g.,
+    # geopandas.GeoDataFrame or shapely.geometry)
+    if hasattr(data, "__geo_interface__"):
+        return "geojson"
+
+    # Fallback to "matrix" for anything else
+    return "matrix"
 
 
 def non_ascii_to_octal(
