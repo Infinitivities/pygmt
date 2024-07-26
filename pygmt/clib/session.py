@@ -1745,14 +1745,14 @@ class Session:
             else:
                 # Python list, tuple, and pandas.Series types
                 _data = np.atleast_2d(np.asanyarray(data).T)
-        elif kind == "matrix":
+        elif kind == "matrix":  # 2-D numpy.ndarray
             if data.dtype.kind in "iuf":
                 # virtualfile_from_matrix only support 2-D numpy.ndarray which are
                 # signed integer (i), unsigned integer (u) or floating point (f) types
                 _data = (data,)
-            else:  # turn 2-D numpy.ndarray into list of vectors
+            else:  # turn 2-D numpy.ndarray into list of arrays
                 _virtualfile_from = self.virtualfile_from_vectors
-                _data = np.atleast_2d(np.asanyarray(data).T)
+                _data = list(data.T)
 
         # Finally create the virtualfile from the data, to be passed into GMT
         file_context = _virtualfile_from(*_data)
