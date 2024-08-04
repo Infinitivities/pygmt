@@ -1729,7 +1729,7 @@ class Session:
                 if hasattr(data, "items") and not hasattr(data, "to_frame"):
                     # Dict, pandas.DataFrame or xarray.Dataset types.
                     # pandas.Series will be handled below like a 1-D numpy.ndarray.
-                    _data = [array for _, array in data.items()]
+                    _data = [np.atleast_1d(array) for _, array in data.items()]
                 else:
                     # Python list, tuple, and pandas.Series types
                     _data = np.atleast_2d(np.asanyarray(data).T)
