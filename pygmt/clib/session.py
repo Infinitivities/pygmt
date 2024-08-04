@@ -30,7 +30,6 @@ from pygmt.exceptions import GMTCLibError, GMTCLibNoSessionError, GMTInvalidInpu
 from pygmt.helpers import (
     _validate_data_input,
     data_kind,
-    is_nonstr_iter,
     tempfile_from_geojson,
     tempfile_from_image,
 )
@@ -1731,9 +1730,6 @@ class Session:
                     # Dict, pandas.DataFrame or xarray.Dataset types.
                     # pandas.Series will be handled below like a 1-D numpy.ndarray.
                     _data = [array for _, array in data.items()]
-                elif is_nonstr_iter(data) and all(is_nonstr_iter(arr) for arr in data):
-                    # Nested sequences (list/tuple)
-                    _data = data
                 else:
                     # Python list, tuple, and pandas.Series types
                     _data = np.atleast_2d(np.asanyarray(data).T)
