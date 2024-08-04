@@ -186,6 +186,7 @@ def plot3d(  # noqa: PLR0912
     kind = data_kind(data)
     if kind == "none":  # Vectors input
         data = {"x": x, "y": y, "z": z}
+        x, y, z = None, None, None
         # Parameters for vector styles
         if (
             kwargs.get("S") is not None
@@ -231,6 +232,6 @@ def plot3d(  # noqa: PLR0912
 
     with Session() as lib:
         with lib.virtualfile_in(
-            check_kind="vector", data=data, required_z=True
+            check_kind="vector", data=data, x=x, y=y, z=z, required_cols=3
         ) as vintbl:
             lib.call_module(module="plot3d", args=build_arg_list(kwargs, infile=vintbl))

@@ -1605,8 +1605,8 @@ class Session:
         x=None,
         y=None,
         z=None,
-        required_z=False,
         required_data=True,
+        required_cols: int = 2,
     ):
         """
         Store any data inside a virtual file.
@@ -1626,11 +1626,11 @@ class Session:
             data input.
         x/y/z : 1-D arrays or None
             x, y, and z columns as numpy arrays.
-        required_z : bool
-            State whether the 'z' column is required.
         required_data : bool
             Set to True when 'data' is required, or False when dealing with
             optional virtual files. [Default is True].
+        required_cols
+            Number of required columns.
 
         Returns
         -------
@@ -1664,8 +1664,8 @@ class Session:
             x=x,
             y=y,
             z=z,
-            required_z=required_z,
             required_data=required_data,
+            required_cols=required_cols,
             kind=kind,
         )
 
@@ -1775,8 +1775,8 @@ class Session:
             x=x,
             y=y,
             z=z,
-            required_z=required_z,
             required_data=required_data,
+            required_cols=3 if required_z else 2,
         )
 
     @contextlib.contextmanager

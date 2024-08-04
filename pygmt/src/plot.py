@@ -211,6 +211,7 @@ def plot(  # noqa: PLR0912
     kind = data_kind(data)
     if kind == "none":  # Vectors input
         data = {"x": x, "y": y}
+        x, y = None, None
         # Parameters for vector styles
         if (
             kwargs.get("S") is not None
@@ -255,5 +256,5 @@ def plot(  # noqa: PLR0912
                 pass
 
     with Session() as lib:
-        with lib.virtualfile_in(check_kind="vector", data=data) as vintbl:
+        with lib.virtualfile_in(check_kind="vector", data=data, x=x, y=y) as vintbl:
             lib.call_module(module="plot", args=build_arg_list(kwargs, infile=vintbl))
