@@ -14,6 +14,7 @@ import webbrowser
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal
 
+import numpy as np
 import xarray as xr
 from pygmt.encodings import charset
 from pygmt.exceptions import GMTInvalidInput
@@ -195,11 +196,10 @@ def data_kind(  # noqa: PLR0911
 
     Recognized data kinds are:
 
-    - ``"none"``: None and data is required. In this case, the data is usually given via
-      a series of vectors (e.g., x/y/z)
-    - ``"arg"``: bool, int, float, or None (only when ``required`` is False),
-      representing an optional argument, mainly used for dealing with optional virtual
-      files
+    - ``"none"``: data is ``None`` and is required. In this case, the input data is
+      usually given via a series of vectors (e.g., x/y/z)
+    - ``"arg"``: data is ``None`` and ``required=False``, or bool, int, float,
+      representing an optional argument, used for dealing with optional virtual files
     - ``"file"``: a string or a :class:`pathlib.PurePath` object or a sequence of them,
       representing a file name or a list of file names
     - ``"geojson"``: a geo-like Python object that implements ``__geo_interface__``
@@ -253,6 +253,8 @@ def data_kind(  # noqa: PLR0911
     'vectors'
     >>> data_kind(data={"x": [1, 2], "y": [3, 4]})
     'vectors'
+    >>> data_kind(data=[[1, 2], [3, 4]])
+    'vectors'
     >>> data_kind(data=[1, 2, 3])
     'vectors'
     """
@@ -260,7 +262,7 @@ def data_kind(  # noqa: PLR0911
     if data is None and required:
         return "none"
 
-    # A file or a list of files
+    # A file or a sequence of files
     if isinstance(data, str | pathlib.PurePath) or (
         isinstance(data, list | tuple)
         and all(isinstance(_file, str | pathlib.PurePath) for _file in data)
@@ -277,11 +279,12 @@ def data_kind(  # noqa: PLR0911
 
     # Geo-like Python object that implements ``__geo_interface__`` (e.g.,
     # geopandas.GeoDataFrame or shapely.geometry)
+    # Reference: https://gist.github.com/sgillies/2217756
     if hasattr(data, "__geo_interface__"):
         return "geojson"
 
     # A 2-D numpy.ndarray
-    if hasattr(data, "__array_interface__") and data.ndim == 2:
+    if isinstance(data, np.ndarray) and data.ndim == 2:
         return "matrix"
 
     # Fallback to "vectors" for anything else
