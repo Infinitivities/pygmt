@@ -1727,7 +1727,7 @@ class Session:
                     _data.extend(extra_arrays)
             case "vectors":
                 if hasattr(data, "items") and not hasattr(data, "to_frame"):
-                    # pandas.DataFrame or xarray.Dataset types.
+                    # Dict, pandas.DataFrame or xarray.Dataset types.
                     # pandas.Series will be handled below like a 1-D numpy.ndarray.
                     _data = [array for _, array in data.items()]
                 else:
