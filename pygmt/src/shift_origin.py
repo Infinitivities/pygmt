@@ -69,7 +69,7 @@ class shift_origin(Figure):  # noqa: N801
         if yshift:
             kwargs["Y"] = yshift
         with Session() as lib:
-            lib.call_module(module="plot", args=build_arg_string(kwargs))
+            lib.call_module(module="plot", args=build_arg_list(kwargs))
             self.saved_xshift = lib.get_common("X")  # False or xshift in inches
             self.saved_yshift = lib.get_common("Y")  # False or yshift in inches
 
