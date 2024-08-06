@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pygmt import Figure
 from pygmt.clib import Session
-from pygmt.helpers import build_arg_string
+from pygmt.helpers import build_arg_list
 
 
 class shift_origin(Figure):  # noqa: N801
@@ -89,4 +89,4 @@ class shift_origin(Figure):  # noqa: N801
         if self.saved_yshift:
             kwargs["Y"] = f"{-1.0 * self.saved_yshift}i"
         with Session() as lib:
-            lib.call_module(module="plot", args=build_arg_string(kwargs))
+            lib.call_module(module="plot", args=build_arg_list(kwargs))
