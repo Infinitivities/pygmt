@@ -2,6 +2,7 @@
 Utilities and common tasks for wrapping the GMT modules.
 """
 
+import io
 import os
 import pathlib
 import shutil
@@ -188,9 +189,11 @@ def _check_encoding(
 
 
 def data_kind(  # noqa: PLR0911
-    data: Any, required: bool = True
-) -> Literal["none", "arg", "file", "geojson", "grid", "image", "matrix", "vectors"]:
-    """
+    data: Any = None, required: bool = True
+) -> Literal[
+    "none", "arg", "file", "geojson", "grid", "image", "matrix", "stringio", "vectors"
+]:
+    r"""
     Check the kind of data that is provided to a module.
 
     Recognized data kinds are:
@@ -230,6 +233,7 @@ def data_kind(  # noqa: PLR0911
     >>> import xarray as xr
     >>> import pandas as pd
     >>> import pathlib
+    >>> import io
     >>> data_kind(data=None)
     'none'
     >>> data_kind(data=None, required=False)
@@ -248,6 +252,8 @@ def data_kind(  # noqa: PLR0911
     'image'
     >>> data_kind(data=np.arange(10).reshape((5, 2)))
     'matrix'
+    >>> data_kind(data=io.StringIO("TEXT1\nTEXT23\n"))
+    'stringio'
     >>> data_kind(data=pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]}))
     'vectors'
     >>> data_kind(data={"x": [1, 2], "y": [3, 4]})
@@ -267,6 +273,10 @@ def data_kind(  # noqa: PLR0911
         and all(isinstance(_file, str | pathlib.PurePath) for _file in data)
     ):
         return "file"
+
+    # A StringIO object.
+    if isinstance(data, io.StringIO):
+        return "stringio"
 
     # An option argument, mainly for dealing with optional virtual files
     if isinstance(data, bool | int | float) or (data is None and not required):
