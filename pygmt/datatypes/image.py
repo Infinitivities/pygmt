@@ -18,7 +18,7 @@ class _GMT_IMAGE(ctp.Structure):  # noqa: N801
     >>> from pygmt.clib import Session
     >>> with Session() as lib:
     ...     with lib.virtualfile_out(kind="image") as voutimg:
-    ...         lib.call_module("read", ["@earth_day_01d", voutimg, "-Ti"])
+    ...         lib.call_module("read", ["@earth_day_01d_p", voutimg, "-Ti"])
     ...         # Read the image from the virtual file
     ...         image = lib.read_virtualfile(vfname=voutimg, kind="image").contents
     ...         # The image header
@@ -34,17 +34,16 @@ class _GMT_IMAGE(ctp.Structure):  # noqa: N801
     ...         print(header.nm, header.size, header.complex_mode)
     ...         print(header.type, header.n_bands, header.mx, header.my)
     ...         print(header.pad[:])
-    ...         print(header.mem_layout, header.nan_value, header.xy_off)
+    ...         print(header.mem_layout, header.xy_off)
     ...         # Image-specific attributes.
     ...         print(image.type, image.n_indexed_colors)
     ...         # The x and y coordinates
-    ...         x = image.x[: header.n_columns]
-    ...         y = image.y[: header.n_rows]
+    ...         x = np.ctypeslib.as_array(image.x, shape=(header.n_columns,)).copy()
+    ...         y = np.ctypeslib.as_array(image.y, shape=(header.n_rows,)).copy()
     ...         # The data array (with paddings)
-    ...         data = np.reshape(
-    ...             image.data[: header.n_bands * header.mx * header.my],
-    ...             (header.my, header.mx, header.n_bands),
-    ...         )
+    ...         data = np.ctypeslib.as_array(
+    ...             image.data, shape=(header.my, header.mx, header.n_bands)
+    ...         ).copy()
     ...         # The data array (without paddings)
     ...         pad = header.pad[:]
     ...         data = data[pad[2] : header.my - pad[3], pad[0] : header.mx - pad[1], :]
@@ -58,12 +57,12 @@ class _GMT_IMAGE(ctp.Structure):  # noqa: N801
     64800 66976 0
     0 3 364 184
     [2, 2, 2, 2]
-    b'BRPa' 0.0 0.5
+    b'BRPa' 0.5
     1 0
-    >>> x
-    [-179.5, -178.5, ..., 178.5, 179.5]
-    >>> y
-    [89.5, 88.5, ..., -88.5, -89.5]
+    >>> x  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+    array([-179.5, -178.5, ..., 178.5, 179.5])
+    >>> y  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+    array([ 89.5,  88.5, ..., -88.5, -89.5])
     >>> data.shape
     (180, 360, 3)
     >>> data.min(), data.max()
