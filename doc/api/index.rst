@@ -195,6 +195,14 @@ Getting metadata from tabular or grid data:
     info
     grdinfo
 
+Enumerations
+------------
+
+.. autosummary::
+    :toctree: generated
+
+    enums.GridReg
+    enums.GridType
 
 Miscellaneous
 -------------

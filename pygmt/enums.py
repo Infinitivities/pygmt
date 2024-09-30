@@ -37,3 +37,35 @@ class GridFormat(IntEnum):
     GD = 22  #: Import through GDAL
     EI = 23  #: ESRI Arc/Info ASCII Grid Interchange format (ASCII integer)
     EF = 24  #: ESRI Arc/Info ASCII Grid Interchange format (ASCII float)
+
+
+class GridReg(IntEnum):
+    """
+    Enums for grid registration.
+
+    Attributes
+    ----------
+    GRIDLINE
+        Gridline registration.
+    PIXEL
+        Pixel registration.
+    """
+
+    GRIDLINE = 0
+    PIXEL = 1
+
+
+class GridType(IntEnum):
+    """
+    Enums for grid type.
+
+    Attributes
+    ----------
+    CARTESIAN
+        Cartesian grid.
+    GEOGRAPHIC
+        Geographic grid.
+    """
+
+    CARTESIAN = 0
+    GEOGRAPHIC = 1

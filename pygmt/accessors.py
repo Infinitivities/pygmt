@@ -5,6 +5,7 @@ GMT accessor for :class:`xarray.DataArray`.
 from pathlib import Path
 
 import xarray as xr
+from pygmt.enums import GridReg, GridType
 from pygmt.exceptions import GMTInvalidInput
 from pygmt.src.grdinfo import grdinfo
 
@@ -39,10 +40,10 @@ class GMTDataArrayAccessor:
     >>> grid = load_earth_relief(resolution="01d", registration="pixel")
     >>> # See if grid uses Gridline (0) or Pixel (1) registration
     >>> grid.gmt.registration
-    1
+    <GridReg.PIXEL: 1>
     >>> # See if grid uses Cartesian (0) or Geographic (1) coordinate system
     >>> grid.gmt.gtype
-    1
+    <GridType.GEOGRAPHIC: 1>
 
     For :class:`xarray.DataArray` grids created by yourself, grid properties
     ``registration`` and ``gtype`` default to 0 (i.e., a gridline-registered,
@@ -61,12 +62,12 @@ class GMTDataArrayAccessor:
     >>> grid = xr.DataArray(data, coords=[("latitude", lat), ("longitude", lon)])
     >>> # default to a gridline-registrated Cartesian grid
     >>> grid.gmt.registration, grid.gmt.gtype
-    (0, 0)
+    (<GridReg.GRIDLINE: 0>, <GridType.CARTESIAN: 0>)
     >>> # set it to a gridline-registered geographic grid
-    >>> grid.gmt.registration = 0
-    >>> grid.gmt.gtype = 1
+    >>> grid.gmt.registration = GridReg.GRIDLINE
+    >>> grid.gmt.gtype = GridType.GEOGRAPHIC
     >>> grid.gmt.registration, grid.gmt.gtype
-    (0, 1)
+    (<GridReg.GRIDLINE: 0>, <GridType.GEOGRAPHIC: 1>)
 
     Note that the accessors are created once per :class:`xarray.DataArray`
     instance, so you may lose these GMT-specific properties after manipulating
@@ -77,7 +78,7 @@ class GMTDataArrayAccessor:
 
     >>> grid *= 2.0
     >>> grid.gmt.registration, grid.gmt.gtype
-    (0, 1)
+    (<GridReg.GRIDLINE: 0>, <GridType.GEOGRAPHIC: 1>)
 
     Other grid operations (e.g., arithmetic or slice operations) create new
     instances, so the properties will be lost:
@@ -86,12 +87,12 @@ class GMTDataArrayAccessor:
     >>> grid2 = grid[0:30, 50:80]
     >>> # properties are reset to the default values for new instance
     >>> grid2.gmt.registration, grid2.gmt.gtype
-    (0, 0)
+    (<GridReg.GRIDLINE: 0>, <GridType.CARTESIAN: 0>)
     >>> # need to set these properties before passing the grid to PyGMT
     >>> grid2.gmt.registration = grid.gmt.registration
     >>> grid2.gmt.gtype = grid.gmt.gtype
     >>> grid2.gmt.registration, grid2.gmt.gtype
-    (0, 1)
+    (<GridReg.GRIDLINE: 0>, <GridType.GEOGRAPHIC: 1>)
 
     Accessing a :class:`xarray.DataArray` from a :class:`xarray.Dataset` always
     creates new instances, so these properties are always lost. The workaround
@@ -99,18 +100,21 @@ class GMTDataArrayAccessor:
 
     >>> ds = xr.Dataset({"zval": grid})
     >>> ds.zval.gmt.registration, ds.zval.gmt.gtype
-    (0, 0)
+    (<GridReg.GRIDLINE: 0>, <GridType.CARTESIAN: 0>)
     >>> # manually set these properties won't work as expected
-    >>> ds.zval.gmt.registration, ds.zval.gmt.gtype = 0, 1
+    >>> ds.zval.gmt.registration, ds.zval.gmt.gtype = (
+    ...     GridReg.GRIDLINE,
+    ...     GridType.GEOGRAPHIC,
+    ... )
     >>> ds.zval.gmt.registration, ds.zval.gmt.gtype
-    (0, 0)
+    (<GridReg.GRIDLINE: 0>, <GridType.CARTESIAN: 0>)
     >>> # workaround: assign the DataArray into a variable
     >>> zval = ds.zval
     >>> zval.gmt.registration, zval.gmt.gtype
-    (0, 0)
-    >>> zval.gmt.registration, zval.gmt.gtype = 0, 1
+    (<GridReg.GRIDLINE: 0>, <GridType.CARTESIAN: 0>)
+    >>> zval.gmt.registration, zval.gmt.gtype = GridReg.GRIDLINE, GridType.GEOGRAPHIC
     >>> zval.gmt.registration, zval.gmt.gtype
-    (0, 1)
+    (<GridReg.GRIDLINE: 0>, <GridType.GEOGRAPHIC: 1>)
     """
 
     def __init__(self, xarray_obj):
@@ -125,11 +129,13 @@ class GMTDataArrayAccessor:
                     int, grdinfo(self._source, per_column="n").split()[-2:]
                 )
             except ValueError:
-                self._registration = 0  # Default to Gridline registration
-                self._gtype = 0  # Default to Cartesian grid type
+                # Default to Gridline registration and Cartesian grid type
+                self._registration = GridReg.GRIDLINE
+                self._gtype = GridType.CARTESIAN
         else:
-            self._registration = 0  # Default to Gridline registration
-            self._gtype = 0  # Default to Cartesian grid type
+            # Default to Gridline registration and Cartesian grid type
+            self._registration = GridReg.GRIDLINE
+            self._gtype = GridType.CARTESIAN
         del self._source
 
     @property
@@ -141,12 +147,12 @@ class GMTDataArrayAccessor:
 
     @registration.setter
     def registration(self, value):
-        if value not in {0, 1}:
+        if value not in GridReg:
             raise GMTInvalidInput(
                 f"Invalid grid registration value: {value}, should be either "
                 "0 for Gridline registration or 1 for Pixel registration."
             )
-        self._registration = value
+        self._registration = GridReg(value)
 
     @property
     def gtype(self):
@@ -157,9 +163,9 @@ class GMTDataArrayAccessor:
 
     @gtype.setter
     def gtype(self, value):
-        if value not in {0, 1}:
+        if value not in GridType:
             raise GMTInvalidInput(
                 f"Invalid coordinate system type: {value}, should be "
                 "either 0 for Cartesian or 1 for Geographic."
             )
-        self._gtype = value
+        self._gtype = GridType(value)
