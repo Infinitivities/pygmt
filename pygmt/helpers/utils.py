@@ -14,6 +14,7 @@ import webbrowser
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal
 
+import numpy as np
 import xarray as xr
 from pygmt.encodings import charset
 from pygmt.exceptions import GMTInvalidInput
@@ -187,7 +188,7 @@ def _check_encoding(
     return "ISOLatin1+"
 
 
-def data_kind(
+def data_kind(  # noqa: PLR0911
     data: Any = None, required: bool = True
 ) -> Literal[
     "arg", "file", "geojson", "grid", "image", "matrix", "stringio", "vectors"
@@ -195,25 +196,32 @@ def data_kind(
     r"""
     Check the kind of data that is provided to a module.
 
-    The ``data`` argument can be in any type, but only following types are supported:
+    The ``data`` argument can be in any type, but only following types are recognized:
 
-    - a string or a :class:`pathlib.PurePath` object or a sequence of them, representing
-      a file name or a list of file names
-    - a 2-D or 3-D :class:`xarray.DataArray` object
-    - a 2-D matrix
-    - None, bool, int or float type representing an optional arguments
-    - a geo-like Python object that implements ``__geo_interface__`` (e.g.,
-      geopandas.GeoDataFrame or shapely.geometry)
+    - ``"arg"``: data is ``None`` and ``required=False``, or bool, int, float,
+      representing an optional argument. Mainly used for dealing with optional virtual
+      files
+    - ``"file"``: a string or a :class:`pathlib.PurePath` object or a sequence of them,
+      representing a file name or a list of file names
+    - ``"geojson"``: a geo-like Python object that implements ``__geo_interface__``
+      (e.g., geopandas.GeoDataFrame or shapely.geometry)
+    - ``"grid"``: a :class:`xarray.DataArray` object with dimensions other than 3
+    - ``"image"``: a :class:`xarray.DataArray` object with 3 dimensions
+    - ``"matrix"``: a 2-D :class:`numpy.ndarray` object
+    - ``"vectors"``: a :class:`pandas.DataFrame` object, a dictionary with array-like
+      values, or a sequence of sequences. When ``data`` is ``None`` and is required,
+      the input data is usually given via a series of vectors (e.g., x/y/z). In this
+      case, the data kind is also "vectors".
+
+    The function will fallback to ``"vectors"`` for any unrecognized data.
 
     Parameters
     ----------
-    data : str, pathlib.PurePath, None, bool, xarray.DataArray or {table-like}
-        Pass in either a file name or :class:`pathlib.Path` to an ASCII data
-        table, an :class:`xarray.DataArray`, a 1-D/2-D
-        {table-classes} or an option argument.
+    data
+        The data that is provided to a module.
     required
-        Set to True when 'data' is required, or False when dealing with
-        optional virtual files. [Default is True].
+        If the data is required or not. Set to ``False`` when dealing with optional
+        virtual files.
 
     Returns
     -------
@@ -247,30 +255,35 @@ def data_kind(
     >>> data_kind(data=io.StringIO("TEXT1\nTEXT23\n"))
     'stringio'
     """
-    kind: Literal[
-        "arg", "file", "geojson", "grid", "image", "matrix", "stringio", "vectors"
-    ]
+    # One file or a sequence of files.
     if isinstance(data, str | pathlib.PurePath) or (
         isinstance(data, list | tuple)
         and all(isinstance(_file, str | pathlib.PurePath) for _file in data)
     ):
-        # One or more files
-        kind = "file"
-    elif isinstance(data, bool | int | float) or (data is None and not required):
-        kind = "arg"
-    elif isinstance(data, io.StringIO):
-        kind = "stringio"
-    elif isinstance(data, xr.DataArray):
-        kind = "image" if len(data.dims) == 3 else "grid"
-    elif hasattr(data, "__geo_interface__"):
-        # geo-like Python object that implements ``__geo_interface__``
-        # (geopandas.GeoDataFrame or shapely.geometry)
-        kind = "geojson"
-    elif data is not None:
-        kind = "matrix"
-    else:
-        kind = "vectors"
-    return kind
+        return "file"
+
+    # A StringIO object.
+    if isinstance(data, io.StringIO):
+        return "stringio"
+
+    # An option argument, mainly for dealing with optional virtual files
+    if isinstance(data, bool | int | float) or (data is None and not required):
+        return "arg"
+
+    # A xr.DataArray grid or image.
+    if isinstance(data, xr.DataArray):
+        return "image" if data.ndim == 3 else "grid"
+
+    # geo-like Python object that implements ``__geo_interface__``
+    # (e.g., geopandas.GeoDataFrame or shapely.geometry)
+    if hasattr(data, "__geo_interface__"):
+        return "geojson"
+
+    # A 2-D np.ndarray matrix
+    if isinstance(data, np.ndarray) and data.ndim == 2:
+        return "matrix"
+
+    return "vectors"
 
 
 def non_ascii_to_octal(
