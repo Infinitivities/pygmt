@@ -1800,8 +1800,15 @@ class Session:
         x/y/z : 1-D arrays or None
             x, y, and z columns as numpy arrays.
         extra_arrays : list of 1-D arrays
-            Optional. A list of numpy arrays in addition to x, y, and z.
-            All of these arrays must be of the same size as the x/y/z arrays.
+            Optional. A list of numpy arrays in addition to x, y, and z. All of these
+            arrays must be of the same size as the x/y/z arrays.
+
+            .. deprecated:: 0.14.0
+
+               The ``extra_arrays`` parameter is deprecated in v0.14.0 and will be
+               removed in v0.18.0. To pass more than three vectors to this function,
+               create a dictionary with array-like values instead. See the changes in
+               PR #XXX for reference.
         required_z : bool
             State whether the 'z' column is required.
         required_data : bool
@@ -1887,6 +1894,13 @@ class Session:
                     _data.append(z)
                 if extra_arrays:
                     _data.extend(extra_arrays)
+                    msg = (
+                        "The ``extra_arrays`` parameter is deprecated in v0.14.0 and "
+                        "will be removed in v0.18.0. To pass more than three vectors "
+                        "to this function, create a dictionary with array-like values "
+                        "instead. See the changes in PR #XXX for reference."
+                    )
+                    warnings.warn(message=msg, category=FutureWarning, stacklevel=1)
             case "vectors":
                 if hasattr(data, "items") and not hasattr(data, "to_frame"):
                     # pandas.DataFrame or xarray.Dataset types.
