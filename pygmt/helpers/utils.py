@@ -228,10 +228,10 @@ def data_kind(  # noqa: PLR0911
     Parameters
     ----------
     data
-        The data that is provided to a module.
+        The data to be passed to a GMT module.
     required
-        If the data is required or not. Set to ``False`` when dealing with optional
-        virtual files.
+        Whether 'data' is required. Set to ``False`` when dealing with optional virtual
+        files.
 
     Returns
     -------
@@ -240,38 +240,71 @@ def data_kind(  # noqa: PLR0911
 
     Examples
     --------
-    >>> import numpy as np
-    >>> import xarray as xr
-    >>> import pandas as pd
-    >>> import pathlib
     >>> import io
-    >>> data_kind(data=None)
-    'none'
+    >>> from pathlib import Path
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> import xarray as xr
+
+    The "arg" kind:
+
+    >>> [data_kind(data=data, required=False) for data in (2, 2.0, True, False)]
+    ['arg', 'arg', 'arg', 'arg']
     >>> data_kind(data=None, required=False)
     'arg'
-    >>> [data_kind(data=data) for data in (2, 2.0, True, False)]
-    ['arg', 'arg', 'arg', 'arg']
-    >>> data_kind(data="my-data-file.txt")
+
+    The "file" kind:
+
+    >>> [data_kind(data=data) for data in ("file.txt", ("file1.txt", "file2.txt"))]
+    ['file', 'file']
+    >>> data_kind(data=Path("file.txt"))
     'file'
-    >>> data_kind(data=pathlib.Path("my-data-file.txt"))
+    >>> data_kind(data=(Path("file1.txt"), Path("file2.txt")))
     'file'
-    >>> data_kind(data=["data1.txt", "data2.txt"])
-    'file'
-    >>> data_kind(data=xr.DataArray(np.random.rand(4, 3)))
+
+    The "grid" kind:
+
+    >>> data_kind(data=xr.DataArray(np.random.rand(4, 3)))  # 2-D xarray.DataArray
     'grid'
-    >>> data_kind(data=xr.DataArray(np.random.rand(3, 4, 5)))
+    >>> data_kind(data=xr.DataArray(np.arange(12)))  # 1-D xarray.DataArray
+    'grid'
+    >>> data_kind(data=xr.DataArray(np.random.rand(2, 3, 4, 5)))  # 4-D xarray.DataArray
+    'grid'
+
+    The "image" kind:
+
+    >>> data_kind(data=xr.DataArray(np.random.rand(3, 4, 5)))  # 3-D xarray.DataArray
     'image'
-    >>> data_kind(data=np.arange(10).reshape((5, 2)))
-    'matrix'
+
+    The "stringio"`` kind:
+
     >>> data_kind(data=io.StringIO("TEXT1\nTEXT23\n"))
     'stringio'
-    >>> data_kind(data=pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]}))
-    'vectors'
-    >>> data_kind(data={"x": [1, 2], "y": [3, 4]})
-    'vectors'
-    >>> data_kind(data=[[1, 2], [3, 4]])
-    'vectors'
-    >>> data_kind(data=[1, 2, 3])
+
+    The "matrix"`` kind:
+
+    >>> data_kind(data=np.arange(10))  # 1-D numpy.ndarray
+    'matrix'
+    >>> data_kind(data=np.arange(10).reshape((5, 2)))  # 2-D numpy.ndarray
+    'matrix'
+    >>> data_kind(data=np.arange(60).reshape((3, 4, 5)))  # 3-D numpy.ndarray
+    'matrix'
+    >>> data_kind(xr.DataArray(np.arange(12), name="x").to_dataset())  # xarray.Dataset
+    'matrix'
+    >>> data_kind(data=[1, 2, 3])  # 1-D sequence
+    'matrix'
+    >>> data_kind(data=[[1, 2, 3], [4, 5, 6]])  # sequence of sequences
+    'matrix'
+    >>> data_kind(data={"x": [1, 2, 3], "y": [4, 5, 6]})  # dictionary
+    'matrix'
+    >>> data_kind(data=pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}))  # pd.DataFrame
+    'matrix'
+    >>> data_kind(data=pd.Series([1, 2, 3], name="x"))  # pd.Series
+    'matrix'
+
+    The "vectors" kind:
+
+    >>> data_kind(data=None)
     'vectors'
     """
     # data is None and is required.
