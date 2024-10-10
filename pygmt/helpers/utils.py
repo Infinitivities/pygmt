@@ -108,6 +108,11 @@ def _validate_data_input(
         if x is not None or y is not None or z is not None:
             msg = "Too much data. Use either data or x/y/z."
             raise GMTInvalidInput(msg)
+
+        if isinstance(data, dict) and any(value is None for value in data.values()):
+            msg = "Can't pass None vectors."
+            raise GMTInvalidInput(msg)
+
         # check if data has the required z column
         if required_z:
             msg = "data must provide x, y, and z columns."

@@ -208,6 +208,9 @@ def plot(
     """
     kwargs = self._preprocess(**kwargs)
 
+    if data is not None and any(v is not None for v in (x, y)):
+        raise GMTInvalidInput("Too much data.")
+
     kind = data_kind(data)
     if kind == "empty":  # Data is given via a series of vectors
         data = {"x": x, "y": y}
