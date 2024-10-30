@@ -238,7 +238,7 @@ def plot(
         if is_nonstr_iter(symbol):
             if "S" not in kwargs:
                 kwargs["S"] = True
-            extra_arrays.append(symbol)
+            data["symbol"] = symbol
     else:
         for name, value in [
             ("direction", direction),
