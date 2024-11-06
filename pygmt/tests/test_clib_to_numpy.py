@@ -105,6 +105,35 @@ def test_to_numpy_ndarray_numpy_dtypes_numeric(dtype, expected_dtype):
     npt.assert_array_equal(result, array, strict=True)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.datetime64,
+        "datetime64[Y]",
+        "datetime64[M]",
+        "datetime64[W]",
+        "datetime64[D]",
+        "datetime64[h]",
+        "datetime64[m]",
+        "datetime64[s]",
+        "datetime64[ms]",
+        "datetime64[us]",
+        "datetime64[ns]",
+        "datetime64[ps]",
+        "datetime64[fs]",
+        "datetime64[as]",
+    ],
+)
+def test_to_ndarray_numpy_ndarray_numpy_datetime(dtype):
+    """
+    Test the _to_ndarray function with 1-D NumPy arrays of datetime.
+    """
+    array = np.array(["2024-01-01", "2024-01-02", "2024-01-03"], dtype=dtype)
+    result = _to_numpy(array)
+    assert result.dtype.type == np.datetime64
+    npt.assert_array_equal(result, array)
+
+
 ########################################################################################
 # Test the _to_numpy function with pandas.Series.
 #
