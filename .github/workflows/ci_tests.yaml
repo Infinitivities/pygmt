@@ -26,7 +26,7 @@ name: Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, ci/pytest-xdist ]
     paths:
       - 'pygmt/**'
       - '.github/workflows/ci_tests.yaml'
