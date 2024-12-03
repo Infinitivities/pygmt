@@ -32,6 +32,42 @@ import xarray as xr
 __doctest_requires__ = {("load_tile_map"): ["contextily"]}
 
 
+def _image_to_datarray(
+    image: np.ndarray, extent: Sequence[float, float, float, float]
+) -> xr.DataArray:
+    """
+    Convert an image and its extent to an xarray.DataArray object.
+
+    Parameters
+    ----------
+    image
+        An RGBA image returned from ``contextily.bounds2img``.
+    extent
+        Extent of the image as a sequence of floats (left, right, bottom, top).
+
+    Returns
+    -------
+    dataarray
+        An xarray.DataArray object with 3 bands (RGB) and georeferenced coordinates.
+    """
+    # Turn RGBA image from channel-last to channel-first and get 3-band RGB only
+    _image = image.transpose(2, 0, 1)  # Change image from (H, W, C) to (C, H, W)
+    rgb_image = _image[0:3, :, :]  # Get just RGB by dropping RGBA's alpha channel
+
+    # Georeference RGB image into an xarray.DataArray
+    left, right, bottom, top = extent
+    dataarray = xr.DataArray(
+        data=rgb_image,
+        coords={
+            "band": np.array(object=[1, 2, 3], dtype=np.uint8),  # Red, Green, Blue
+            "y": np.linspace(start=top, stop=bottom, num=rgb_image.shape[1]),
+            "x": np.linspace(start=left, stop=right, num=rgb_image.shape[2]),
+        },
+        dims=("band", "y", "x"),
+    )
+    return dataarray
+
+
 def load_tile_map(
     region: Sequence[float],
     zoom: int | Literal["auto"] = "auto",
@@ -179,22 +215,7 @@ def load_tile_map(
     image, extent = contextily.bounds2img(
         w=west, s=south, e=east, n=north, **contextily_kwargs
     )
-
-    # Turn RGBA img from channel-last to channel-first and get 3-band RGB only
-    _image = image.transpose(2, 0, 1)  # Change image from (H, W, C) to (C, H, W)
-    rgb_image = _image[0:3, :, :]  # Get just RGB by dropping RGBA's alpha channel
-
-    # Georeference RGB image into an xarray.DataArray
-    left, right, bottom, top = extent
-    dataarray = xr.DataArray(
-        data=rgb_image,
-        coords={
-            "band": np.array(object=[1, 2, 3], dtype=np.uint8),  # Red, Green, Blue
-            "y": np.linspace(start=top, stop=bottom, num=rgb_image.shape[1]),
-            "x": np.linspace(start=left, stop=right, num=rgb_image.shape[2]),
-        },
-        dims=("band", "y", "x"),
-    )
+    dataarray = _image_to_datarray(image, extent)
 
     # If rioxarray is installed, set the coordinate reference system.
     if hasattr(dataarray, "rio"):
