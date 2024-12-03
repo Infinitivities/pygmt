@@ -211,11 +211,48 @@ def load_tile_map(
             raise ValueError(msg)
         contextily_kwargs["zoom_adjust"] = zoom_adjust
 
-    west, east, south, north = region
-    image, extent = contextily.bounds2img(
-        w=west, s=south, e=east, n=north, **contextily_kwargs
-    )
-    dataarray = _image_to_datarray(image, extent)
+    # Call contextily.bounds2img to get the tiles that compose the map.
+    # Need to handle the case where the region crosses the antimeridian differently.
+    if lonlat is False:  # Bounds are in Spherical Mercator.
+        west, east, south, north = region
+        image, extent = contextily.bounds2img(
+            w=west, s=south, e=east, n=north, **contextily_kwargs
+        )
+        dataarray = _image_to_datarray(image, extent)
+    else:  # Bounds are in lonlat.
+        west, east, south, north = region
+        if east < 180.0:
+            image, extent = contextily.bounds2img(
+                w=west, s=south, e=east, n=north, **contextily_kwargs
+            )
+            dataarray = _image_to_datarray(image, extent)
+        elif west > 180.0:  # Region in the western hemisphere.
+            west -= 360.0
+            east -= 360.0
+            image, extent = contextily.bounds2img(
+                w=west, s=south, e=east, n=north, **contextily_kwargs
+            )
+            # Adjust the extent to account for the shift.
+            extent = (extent[0] - 360.0, extent[1] - 360.0, extent[2], extent[3])
+            dataarray = _image_to_datarray(image, extent)
+        else:  # Region crosses the antimeridian.
+            # Split the region into two parts: the western hemisphere and the eastern
+            # hemisphere. Then call contextily.bounds2img twice to get the tiles.
+            west1, east1 = west, 180.0
+            image1, extent1 = contextily.bounds2img(
+                w=west1, s=south, e=east1, n=north, **contextily_kwargs
+            )
+            dataarray1 = _image_to_datarray(image1, extent1)
+
+            west2, east2 = -180.0, east - 360.0
+            image2, extent2 = contextily.bounds2img(
+                w=west2, s=south, e=east2, n=north, **contextily_kwargs
+            )
+            # Adjust the extent to account for the shift.
+            extent2 = (extent2[0] - 360.0, extent2[1] - 360.0, extent2[2], extent2[3])
+            dataarray2 = _image_to_datarray(image2, extent2)
+
+            dataarray = xr.concat([dataarray1, dataarray2], dim="x")
 
     # If rioxarray is installed, set the coordinate reference system.
     if hasattr(dataarray, "rio"):
