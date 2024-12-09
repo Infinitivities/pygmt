@@ -7,14 +7,9 @@ import inspect
 import string
 from pathlib import Path
 
-<<<<<<< HEAD
-from pygmt.clib import Session
-from pygmt.exceptions import GMTImageComparisonFailure
-=======
 import xarray as xr
 from pygmt.exceptions import GMTImageComparisonFailure
 from pygmt.src import read
->>>>>>> feature/read
 
 
 def check_figures_equal(*, extensions=("png",), tol=0.0, result_dir="result_images"):
