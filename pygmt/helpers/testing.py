@@ -7,8 +7,14 @@ import inspect
 import string
 from pathlib import Path
 
+<<<<<<< HEAD
 from pygmt.clib import Session
 from pygmt.exceptions import GMTImageComparisonFailure
+=======
+import xarray as xr
+from pygmt.exceptions import GMTImageComparisonFailure
+from pygmt.src import read
+>>>>>>> feature/read
 
 
 def check_figures_equal(*, extensions=("png",), tol=0.0, result_dir="result_images"):
@@ -111,11 +117,12 @@ def check_figures_equal(*, extensions=("png",), tol=0.0, result_dir="result_imag
                 else:  # Images are not the same
                     for key in ["actual", "expected", "diff"]:
                         err[key] = Path(err[key]).relative_to(".")
-                    raise GMTImageComparisonFailure(
+                    msg = (
                         f"images not close (RMS {err['rms']:.3f}):\n"
                         f"\t{err['actual']}\n"
                         f"\t{err['expected']}"
                     )
+                    raise GMTImageComparisonFailure(msg)
             finally:
                 del fig_ref
                 del fig_test
@@ -142,22 +149,16 @@ def check_figures_equal(*, extensions=("png",), tol=0.0, result_dir="result_imag
     return decorator
 
 
-def load_static_earth_relief():
+def load_static_earth_relief() -> xr.DataArray:
     """
-    Load the static_earth_relief file for internal testing.
+    Load the static_earth_relief.nc file for internal testing.
 
     Returns
     -------
-    data : xarray.DataArray
+    data
         A grid of Earth relief for internal tests.
     """
-    with Session() as lib:
-        with lib.virtualfile_out(kind="grid") as voutgrd:
-            lib.call_module(
-                module="read", args=["@static_earth_relief.nc", voutgrd, "-Tg"]
-            )
-            grid = lib.virtualfile_to_raster(vfname=voutgrd, kind="grid")
-        return grid
+    return read("@static_earth_relief.nc", kind="grid")  # type: ignore[return-value]
 
 
 def skip_if_no(package):
